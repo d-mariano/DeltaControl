@@ -13,7 +13,6 @@
 #   
 #########################################################################
 import socket
-import printcore
 import sys
 import time
 import thread
@@ -29,22 +28,27 @@ from printrun import gcoder
 # which code is run
 ######################################################
 def sendcommand( command, socket ):
-    if ( command == "north" ) : 
+    if ( command == "north" ) :
+        print "Loading \"north.gco\""
         p.send_now("M23 north.gco")
         p.send_now("M24")
     elif ( command == "south" ):
+        print "Loading \"south.gco\""
         p.send_now("M23 south.gco")
         p.send_now("M24")
     elif ( command == "east" ):
+        print "Loading \"east.gco\""
         p.send_now("M23 east.gco")
         p.send_now("M24")
     elif ( command == "west" ):
+        print "Loading \"west.gco\""
         p.send_now("M23 west.gco")
         p.send_now("M24")
     elif ( command == "disconnect" ):
-        p.disconnect() 
-    else
-        socket.send("Command not found");
+        print "Disconnecting from robot..."
+        p.disconnect()
+    else:
+        socket.send("Command not found\n");
 
 ######################################################
 # Receive in a thread to implement asynchronous 
@@ -52,23 +56,34 @@ def sendcommand( command, socket ):
 ######################################################
 def receiver( socket, close ):
     while True:
-        input = socket.recv()
-        print "Recieved: ", input
+        try:
+            input = socket.recv(1024)
+            # Srip string of a newline
+            input = input.strip( '\n' )
+        except:
+            print "Socket closed"
+        print "Recieved: %s\n" % (input)
         if ( input == "exit" ):
             close = True
             socket.close()
-        else: 
-            sendcommand( command, socket )       
 
+        else:
+            try:
+                sendcommand( input, socket )
+            except:
+                print "Client gone...\n"
+                close = True
+                socket.close()
+                return
 #####################################################
 # Begin script with logging to stderr and opening a 
 # connection to the control board
 #####################################################
-setup_logging(sys.stderr) 
+setup_logging(sys.stderr)
 # Connect to robot
-p = printcore('/dev/ttyUSB0', 115200)       
+p = printcore('/dev/ttyUSB0', 115200)
 # Initialize SD Card
-p.send_now('M21')             
+p.send_now('M21')
 
 s = socket.socket()         # Create a socket object
 host = socket.gethostname() # Get local machine name
@@ -76,7 +91,7 @@ port = 43000                # Reserve a port for your service
 s.bind((host,port))         # Bind to the port
 
 s.listen(5)                 # Now wait for client connection
-print '%s listening on port %s' % (host, port)
+print "%s listening on port %s" % (host, port)
 
 # Create a boolean for testing if the client wants to close
 close = False
@@ -85,8 +100,5 @@ while True :
     c, addr = s.accept()    # Establish connection with client
     print "Got connection from", addr
     thread.start_new_thread( receiver, ( c, close ) ) # Begin receiver thread
-    c.send("Server awaiting commands...")
-    while True :
-        if ( close == True ):
-            c.close()
+    c.send("Server awaiting commands...\n")
 
