@@ -28,22 +28,23 @@ from printrun import gcoder
 # The commands sent from the client will determine 
 # which code is run
 ######################################################
-def sendcommand( command ):
+def sendcommand( command, socket ):
     if ( command == "north" ) : 
         p.send_now("M23 north.gco")
         p.send_now("M24")
-    else if ( command == "south" ) :
+    elif ( command == "south" ):
         p.send_now("M23 south.gco")
         p.send_now("M24")
-    else if ( command == "east" ) :
+    elif ( command == "east" ):
         p.send_now("M23 east.gco")
         p.send_now("M24")
-    else if ( command == "west" ) :
+    elif ( command == "west" ):
         p.send_now("M23 west.gco")
         p.send_now("M24")
-    else if ( command == "disconnect" ) :
+    elif ( command == "disconnect" ):
         p.disconnect() 
     else
+        socket.send("Command not found");
 
 ######################################################
 # Receive in a thread to implement asynchronous 
@@ -52,11 +53,12 @@ def sendcommand( command ):
 def receiver( socket, close ):
     while True:
         input = socket.recv()
+        print "Recieved: ", input
         if ( input == "exit" ):
             close = True
             socket.close()
         else: 
-            sendcommand( command )       
+            sendcommand( command, socket )       
 
 #####################################################
 # Begin script with logging to stderr and opening a 
