@@ -54,7 +54,7 @@ def sendcommand( command, socket ):
 # Receive in a thread to implement asynchronous 
 # communication.
 ######################################################
-def receiver( socket, close ):
+def receiver( socket ):
     while True:
         try:
             input = socket.recv(1024)
@@ -64,7 +64,6 @@ def receiver( socket, close ):
             print "Socket closed"
         print "Recieved: %s\n" % (input)
         if ( input == "exit" ):
-            close = True
             socket.close()
 
         else:
@@ -75,10 +74,12 @@ def receiver( socket, close ):
                 close = True
                 socket.close()
                 return
+
 #####################################################
 # Begin script with logging to stderr and opening a 
 # connection to the control board
 #####################################################
+# Setup logging to stderr
 setup_logging(sys.stderr)
 # Connect to robot
 p = printcore('/dev/ttyUSB0', 115200)
@@ -93,12 +94,9 @@ s.bind((host,port))         # Bind to the port
 s.listen(5)                 # Now wait for client connection
 print "%s listening on port %s" % (host, port)
 
-# Create a boolean for testing if the client wants to close
-close = False
-
 while True :
     c, addr = s.accept()    # Establish connection with client
     print "Got connection from", addr
-    thread.start_new_thread( receiver, ( c, close ) ) # Begin receiver thread
+    thread.start_new_thread( receiver, ( c ) ) # Begin receiver thread
     c.send("Server awaiting commands...\n")
 
