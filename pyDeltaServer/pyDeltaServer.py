@@ -97,6 +97,6 @@ print "%s listening on port %s" % (host, port)
 while True :
     c, addr = s.accept()    # Establish connection with client
     print "Got connection from", addr
-    thread.start_new_thread( receiver, ( c ) ) # Begin receiver thread
+    thread.start_new_thread( receiver, ( c, ) ) # Begin receiver thread
     c.send("Server awaiting commands...\n")
 
