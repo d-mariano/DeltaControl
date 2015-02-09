@@ -8,7 +8,7 @@
 #   A server script written in python that sends GCode commands
 #   to a delta robot.  The commands sent to the robot are determined
 #   by selections made on an Android or Web-Based client.  The delta bot 
-#   will have Gcode compatible firmware.  This script uses printrun 
+#   will have G-code compatible firmware.  This script uses printrun 
 #   libraries provided by kliment.
 #   
 #########################################################################
