@@ -1,17 +1,27 @@
 #! /usr/bin/env python
-##########################################################################   
-#   
+
+##  @package pyDeltaServer
+#   A server script written in Python that sends GCode commands
+#   to a delta robot.
+#
+#   The commands sent to the robot are determined by selections made on an 
+#   Android or Web-Based client.  The delta bot will have G-code G-code 
+#   compatible firmware installed on its control board.  This script uses 
+#   Printrun libraries provided by kliment on GitHub.
+#      
+#   The server begins by waiting for a client.  When a client connects, the 
+#   server will attempt to connect to a printer on /dev/ttyACM0.  If this 
+#   fails, it will attempt to connect to a printer on /dev/ttyACM1; it is 
+#   possible that the device name will change from either one of these.  If 
+#   neither one of these attempts succeed, then the server will begin with 
+#   no printer connection.  This is especially useful for debugging client
+#   to server communication without having to connect to a control board.
+#
 #   Author:     Dave Mariano
 #   Date:       Feb 1, 2015
 #   Filename:   pyDeltaServer.py
+#   Github:     github.com/d-mariano/DeltaLaser   
 #
-#   A server script written in python that sends GCode commands
-#   to a delta robot.  The commands sent to the robot are determined
-#   by selections made on an Android or Web-Based client.  The delta bot 
-#   will have G-code compatible firmware installed on its control board.  
-#   This script uses Printrun libraries provided by kliment on GitHub.
-#   
-#########################################################################
 import socket
 import sys
 import time
@@ -23,12 +33,11 @@ from printrun.printcore import printcore
 from printrun.utils import setup_logging
 from printrun import gcoder
 
-######################################################
-# Send chosen command to the delta bot control board
-# The control board uses an SD card with stored GCode
-# The commands sent from the client will determine 
-# which code is run
-######################################################
+## Based on client messages, send commands to the printer.
+#
+# Relate messages received from the client with particular
+# G-code commands for the printer.  The control board can
+# support SD cards, but commands can also be issued in-line.
 def sendcommand( command, socket ):
     if ( command == "neutral" ):
         print command
@@ -83,10 +92,10 @@ def sendcommand( command, socket ):
     else:
         socket.send("Command not found\n");
 
-######################################################
-# Receive in a thread to implement asynchronous 
-# communication.
-######################################################
+## Receiver function to handle a client's input
+#
+# Run this function in a separate  thread to implement 
+# asynchronous client/server communication.
 def receiver( socket ):
     while True:
         try:
@@ -116,29 +125,35 @@ def receiver( socket ):
 
         
 
-
-####################################################
+##
 # Handler for keyboard interrupt
-###################################################
+#
 def sigintHandler(signum, frame):
     p.disconnect()
     s.close()
     c.close()
     sys.exit(1)
 
-
 ######################################################
 # Begin script with logging to stderr and binding to a 
 # socket on port 43000.  If a client connects, try and
 # connect to a printer.
-#######################################################
+
+# Initialize sigint handler
+signal.signal(signal.SIGINT, sigintHandler)
+
 # Setup logging to stderr
 setup_logging(sys.stderr)
 
+# Initialize printcore
+p = printcore()
+
 s = socket.socket()         # Create a socket object
-host = socket.gethostname() 
-port = 43000                # Reserve a port for your service
+host = '0.0.0.0' 
+port = 43000              
+
 try:
+    # Setup a stream socket with the host and port specified above.
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((host,port))         # Bind to the port
 except Exception,e:
@@ -147,16 +162,12 @@ except Exception,e:
     s.close()
     sys.exit(1)
 
-signal.signal(signal.SIGINT, sigintHandler)
-
 s.listen(5)                 # Now wait for client connection
 print "%s listening on port %s" % (host, port)
 
 while True :
     c, addr = s.accept()    # Establish connection with client
     print "Got connection from ", c
-    
-    p = printcore()
 
     #######   Connect to the printer  #########
     try:
